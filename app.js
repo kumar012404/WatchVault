@@ -12,17 +12,10 @@ import {
     doc,
     getDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import {
-    getStorage,
-    ref,
-    uploadBytes,
-    getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 // Initialize Firebase
 const app = initializeApp(window.firebaseConfig);
 const db = getFirestore(app);
-const storage = getStorage(app);
 const animeCollection = collection(db, 'anime');
 
 // DOM Elements
@@ -35,7 +28,6 @@ const addBtn = document.getElementById('add-btn');
 const closeModal = document.getElementById('close-modal');
 const modalTitle = document.getElementById('modal-title');
 const saveBtnText = document.getElementById('save-btn-text');
-const imageFile = document.getElementById('image-file');
 const imageUrlInput = document.getElementById('image-url-input');
 const imageUrlHidden = document.getElementById('image-url-hidden');
 const searchInput = document.getElementById('search-input');
@@ -174,37 +166,15 @@ animeForm.addEventListener('submit', async (e) => {
     const episode = document.getElementById('episode').value;
     const totalEpisodes = totalEpisodesInput.value;
     const status = document.getElementById('status').value;
-    const file = imageFile.files[0];
-
-    // File size check (Max 2MB)
-    if (file && file.size > 2 * 1024 * 1024) {
-        alert("Image quality/size romba perusa irukku (Max 2MB). Vere chinna photo try pannunga!");
-        return;
-    }
-
     saveBtnText.innerText = 'Processing...';
-    // Priority: 1. New Upload, 2. Manual URL Input, 3. Existing Image (Hidden), 4. Default Placeholder
-    let finalImageUrl = 'https://images.unsplash.com/photo-1578632738981-4330c008c90a?q=80&w=1000&auto=format&fit=crop';
 
-    if (imageUrlInput.value) {
-        finalImageUrl = imageUrlInput.value;
-    } else if (imageUrlHidden.value) {
+    // Image URL logic
+    let finalImageUrl = imageUrlInput.value || 'https://images.unsplash.com/photo-1578632738981-4330c008c90a?q=80&w=1000&auto=format&fit=crop';
+    if (!imageUrlInput.value && imageUrlHidden.value) {
         finalImageUrl = imageUrlHidden.value;
     }
 
     try {
-        // Upload image ONLY if a new file is selected (Overrides URL input if both are present)
-        if (file) {
-            console.log("Starting image upload:", file.name);
-            const storageRef = ref(storage, `covers/${Date.now()}_${file.name}`);
-
-            const uploadTask = uploadBytes(storageRef, file);
-            const snapshot = await uploadTask;
-            finalImageUrl = await getDownloadURL(snapshot.ref);
-        } else {
-            console.log("Using provided URL or existing image.");
-        }
-
         if (isEditing) {
             const animeRef = doc(db, 'anime', currentEditId);
             const docSnap = await getDoc(animeRef);
@@ -253,17 +223,8 @@ animeForm.addEventListener('submit', async (e) => {
         imageUrlHidden.value = '';
         console.log("Form reset and modal closed.");
     } catch (error) {
-        console.error("DEBUG - Full Error Details:", error);
-        console.log("Error Code:", error.code);
-
-        let errorMsg = "Upload failed!";
-        if (error.code === 'storage/unauthorized') {
-            errorMsg = "Firebase Storage Rules-la permission illai! Rules tab-la 'allow read, write: if true;' nnu maathi Publish pannunga.";
-        } else if (error.message.includes("Timeout")) {
-            errorMsg = "Internet slow-ah irukku illa Firebase response illa.";
-        }
-
-        alert(errorMsg);
+        console.error("Database Update Error:", error);
+        alert("Update failed! Check internet connection.");
     } finally {
         saveBtnText.innerText = isEditing ? 'Update Changes' : 'Add to List';
     }
@@ -291,8 +252,7 @@ window.editAnime = (id, name, image, season, episode, status) => {
     document.getElementById('type').value = anime?.type || 'Anime';
     document.getElementById('name').value = name;
     imageUrlHidden.value = image || '';
-    imageUrlInput.value = image && !image.includes('firebasestorage') ? image : ''; // Populate if it was a manual URL
-    imageFile.value = ''; // Reset file input
+    imageUrlInput.value = image || '';
     document.getElementById('season').value = season;
     document.getElementById('episode').value = episode;
     totalEpisodesInput.value = allAnimeData.find(a => a.id === id)?.totalEpisodes || '';

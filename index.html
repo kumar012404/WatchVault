@@ -101,20 +101,9 @@
                     <input type="text" id="name" placeholder="e.g. Solo Leveling / Interstellar" required>
                 </div>
                 <div class="form-group">
-                    <label>Poster Image</label>
-                    <div
-                        style="display: flex; flex-direction: column; gap: 0.8rem; background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px; border: 1px dashed var(--glass-border);">
-                        <div>
-                            <label for="image-file" style="font-size: 0.8rem;">Upload from device</label>
-                            <input type="file" id="image-file" accept="image/*">
-                        </div>
-                        <div style="text-align: center; color: var(--text-dim); font-size: 0.8rem;">— OR —</div>
-                        <div>
-                            <label for="image-url-input" style="font-size: 0.8rem;">Paste Image URL</label>
-                            <input type="url" id="image-url-input" placeholder="https://example.com/poster.jpg">
-                        </div>
-                        <input type="hidden" id="image-url-hidden">
-                    </div>
+                    <label for="image-url-input">Poster Image URL</label>
+                    <input type="url" id="image-url-input" placeholder="https://example.com/poster.jpg" required>
+                    <input type="hidden" id="image-url-hidden">
                 </div>
                 <div class="form-row" id="season-episode-row">
                     <div class="form-group">
