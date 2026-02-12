@@ -304,20 +304,34 @@ window.editAnime = (id, name, image, season, episode, status) => {
 
 // Quick Episode +1
 window.incrementEpisode = async (id, currentEp) => {
-    const nextEp = Number(currentEp) + 1;
-    openRatingPicker(`Episode ${nextEp} Rating`, 8, async (rating) => {
-        try {
-            const animeRef = doc(db, 'anime', id);
-            const docSnap = await getDoc(animeRef);
-            if (!docSnap.exists()) return;
+    try {
+        const animeRef = doc(db, 'anime', id);
+        const docSnap = await getDoc(animeRef);
+        if (!docSnap.exists()) return;
 
-            const data = docSnap.data();
+        const data = docSnap.data();
+        const nextEp = Number(currentEp) + 1;
+        let totalEps = data.totalEpisodes || 12;
+        const currentS = data.season || 1;
+
+        // Automatically expand the season if + is clicked beyond the current total
+        if (nextEp > totalEps) {
+            totalEps = nextEp; // Expand the limit
+        }
+
+        openRatingPicker(`Episode ${nextEp} Rating`, 8, async (rating) => {
             let history = data.seasonHistory || {};
-            let currentS = data.season || 1;
 
-            if (!history[currentS]) history[currentS] = { label: `Season ${currentS}`, total: data.totalEpisodes || 12, epRatings: {} };
-            if (typeof history[currentS] === 'number') history[currentS] = { label: `Season ${currentS}`, total: history[currentS], epRatings: {} };
-            if (!history[currentS].epRatings) history[currentS].epRatings = {};
+            // Sync the expanded total to history for this season
+            if (!history[currentS]) {
+                history[currentS] = { label: `Season ${currentS}`, total: totalEps, epRatings: {} };
+            } else {
+                if (typeof history[currentS] === 'number') {
+                    history[currentS] = { label: `Season ${currentS}`, total: totalEps, epRatings: {} };
+                } else {
+                    history[currentS].total = totalEps; // Update the object's total
+                }
+            }
 
             if (rating > 0) history[currentS].epRatings[nextEp] = rating;
 
@@ -330,14 +344,16 @@ window.incrementEpisode = async (id, currentEp) => {
 
             await updateDoc(animeRef, {
                 episode: nextEp,
+                totalEpisodes: totalEps, // Save the expanded total
                 seasonHistory: history,
                 rating: Number(avg),
                 updatedAt: serverTimestamp()
             });
-        } catch (error) {
-            console.error("Error incrementing episode:", error);
-        }
-    });
+            console.log("Episode incremented with rating!");
+        });
+    } catch (error) {
+        console.error("Error incrementing episode:", error);
+    }
 };
 
 window.incrementSeason = async (id, currentSeason) => {
@@ -584,9 +600,17 @@ function createCard(anime, isFeatured) {
                         </div>
                         ` : ''}
                     </div>
-                    <div class="anime-meta">
-                        ${anime.type !== 'Movie' ? `<span>Ep ${anime.episode} • </span>` : ''}
-                        <span>${anime.status}</span>
+                    <div class="anime-meta" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        ${anime.type !== 'Movie' ? `
+                            <div style="display: flex; align-items: center; gap: 0.3rem;">
+                                <span style="font-weight: 500;">Ep ${anime.episode}</span>
+                                <button class="btn-quick-add" style="background: var(--accent-secondary); width: 18px; height: 18px; padding: 0;" onclick="event.stopPropagation(); incrementEpisode('${anime.id}', ${anime.episode})" title="Episode +1">
+                                    <i data-lucide="plus" style="width: 12px; height: 12px;"></i>
+                                </button>
+                            </div>
+                            <span>•</span>
+                        ` : ''}
+                        <span style="color: var(--text-dim); font-size: 0.8rem;">${anime.status}</span>
                     </div>
                     ${anime.type !== 'Movie' ? `
                     <div class="progress-container">
