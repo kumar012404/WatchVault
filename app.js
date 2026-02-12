@@ -10,13 +10,24 @@ import {
     updateDoc,
     deleteDoc,
     doc,
-    getDoc
+    getDoc,
+    where
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // Initialize Firebase
 const app = initializeApp(window.firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 const animeCollection = collection(db, 'anime');
+
+let currentUser = null;
 
 // DOM Elements
 const animeList = document.getElementById('anime-list');
@@ -49,6 +60,15 @@ const modalStars = document.querySelectorAll('#modal-star-group i');
 const saveRatingBtn = document.getElementById('save-rating');
 const cancelRatingBtn = document.getElementById('cancel-rating');
 const ratingModalTitle = document.getElementById('rating-modal-title');
+
+// Auth DOM Elements
+const authContainer = document.getElementById('auth-container');
+const mainApp = document.getElementById('main-app');
+const loginForm = document.getElementById('login-form');
+const signupForm = document.getElementById('signup-form');
+const logoutBtn = document.getElementById('logout-btn');
+const toSignup = document.getElementById('to-signup');
+const toLogin = document.getElementById('to-login');
 
 // State
 let isEditing = false;
@@ -204,6 +224,7 @@ animeForm.addEventListener('submit', async (e) => {
             }
 
             await addDoc(animeCollection, {
+                userId: currentUser.uid, // Tag with current user ID
                 type,
                 name,
                 image: finalImageUrl,
@@ -457,14 +478,76 @@ window.openEpisodeTracker = (id) => {
     trackerModal.classList.add('active');
 };
 
-// Real-time listener
-const q = query(animeCollection, orderBy('updatedAt', 'desc'));
+// Real-time Data Listener
+let unsubscribe = null;
 
-onSnapshot(q, (snapshot) => {
-    allAnimeData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    updateStatsDashboard();
-    applyFilters();
+function startListening(uid) {
+    if (unsubscribe) unsubscribe();
+
+    // Simple query to avoid Index requirement
+    const q = query(animeCollection, orderBy('updatedAt', 'desc'));
+
+    unsubscribe = onSnapshot(q, (snapshot) => {
+        // Filter by user ID in JavaScript memory
+        allAnimeData = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(item => item.userId === uid);
+
+        updateStatsDashboard();
+        applyFilters();
+    });
+}
+
+// Authentication Listeners
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        currentUser = user;
+        authContainer.style.display = 'none';
+        mainApp.style.display = 'block';
+        startListening(user.uid);
+    } else {
+        currentUser = null;
+        authContainer.style.display = 'flex';
+        mainApp.style.display = 'none';
+        if (unsubscribe) unsubscribe();
+    }
 });
+
+toSignup.onclick = (e) => {
+    e.preventDefault();
+    loginForm.style.display = 'none';
+    signupForm.style.display = 'block';
+};
+
+toLogin.onclick = (e) => {
+    e.preventDefault();
+    signupForm.style.display = 'none';
+    loginForm.style.display = 'block';
+};
+
+signupForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('signup-email').value;
+    const pass = document.getElementById('signup-password').value;
+    try {
+        await createUserWithEmailAndPassword(auth, email, pass);
+    } catch (err) {
+        alert(err.message);
+    }
+};
+
+loginForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value;
+    const pass = document.getElementById('login-password').value;
+    try {
+        await signInWithEmailAndPassword(auth, email, pass);
+    } catch (err) {
+        alert(err.message);
+    }
+};
+
+logoutBtn.onclick = () => signOut(auth);
 
 // Update stats dashboard
 function updateStatsDashboard() {
