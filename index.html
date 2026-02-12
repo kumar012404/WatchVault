@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> WatchVault | Track Anime, Movies & Series</title>
+    <meta name="description" content="A minimalist dark-themed tracker for Anime, Movies and Web Series.">
+    <!-- Meta tags for SEO -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Lucide Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.447.0/dist/umd/lucide.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <nav>
+            <h1 class="logo">WatchVault<span>.</span></h1>
+            <button class="btn btn-primary" id="add-btn">
+                <i data-lucide="plus"></i>
+                <span>Add New</span>
+            </button>
+        </nav>
+
+        <div class="stats-dashboard" id="stats-dashboard">
+            <div class="stat-item">
+                <span class="stat-value" id="stat-total">0</span>
+                <span class="stat-label">Total Titles</span>
+            </div>
+            <div class="stat-sep"></div>
+            <div class="stat-item">
+                <span class="stat-value" id="stat-watching">0</span>
+                <span class="stat-label">Watching</span>
+            </div>
+            <div class="stat-sep"></div>
+            <div class="stat-item">
+                <span class="stat-value" id="stat-completed">0</span>
+                <span class="stat-label">Completed</span>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="search-bar">
+                <i data-lucide="search"></i>
+                <input type="text" id="search-input" placeholder="Search by title...">
+            </div>
+            <div class="filter-group">
+                <select id="type-filter">
+                    <option value="All">All Types</option>
+                    <option value="Anime">Anime</option>
+                    <option value="Movie">Movie</option>
+                    <option value="Web Series">Web Series</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <select id="status-filter">
+                    <option value="All">All Status</option>
+                    <option value="Watching">Watching</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Dropped">Dropped</option>
+                </select>
+            </div>
+        </div>
+
+        <section class="hero-section" id="continue-watching-section" style="display: none;">
+            <h2>Continue Watching</h2>
+            <div class="continue-grid" id="featured-list">
+                <!-- Most recent anime card will be injected here -->
+            </div>
+        </section>
+
+        <section class="main-section">
+            <h2 id="list-title">My Collection</h2>
+            <div class="anime-grid" id="anime-list">
+                <!-- Anime cards will be injected here -->
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal for adding/editing anime -->
+    <div class="modal" id="anime-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Add New Item</h3>
+                <button class="btn-icon" id="close-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="anime-form">
+                <input type="hidden" id="anime-id">
+                <div class="form-group">
+                    <label for="type">Type</label>
+                    <select id="type">
+                        <option value="Anime">Anime</option>
+                        <option value="Movie">Movie</option>
+                        <option value="Web Series">Web Series</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="name">Title Name</label>
+                    <input type="text" id="name" placeholder="e.g. Solo Leveling / Interstellar" required>
+                </div>
+                <div class="form-group">
+                    <label>Poster Image</label>
+                    <div
+                        style="display: flex; flex-direction: column; gap: 0.8rem; background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px; border: 1px dashed var(--glass-border);">
+                        <div>
+                            <label for="image-file" style="font-size: 0.8rem;">Upload from device</label>
+                            <input type="file" id="image-file" accept="image/*">
+                        </div>
+                        <div style="text-align: center; color: var(--text-dim); font-size: 0.8rem;">— OR —</div>
+                        <div>
+                            <label for="image-url-input" style="font-size: 0.8rem;">Paste Image URL</label>
+                            <input type="url" id="image-url-input" placeholder="https://example.com/poster.jpg">
+                        </div>
+                        <input type="hidden" id="image-url-hidden">
+                    </div>
+                </div>
+                <div class="form-row" id="season-episode-row">
+                    <div class="form-group">
+                        <label for="season">Season</label>
+                        <input type="number" id="season" value="1" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="episode">Recent Episode</label>
+                        <input type="number" id="episode" value="1" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="total-episodes">Total Episodes</label>
+                        <input type="number" id="total-episodes" placeholder="e.g. 12" min="1">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status">
+                        <option value="Watching">Watching</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Dropped">Dropped</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary"
+                    style="width: 100%; justify-content: center; margin-top: 1rem;">
+                    <i data-lucide="save"></i> <span id="save-btn-text">Add to List</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Episode Tracker Modal (Checklist) -->
+    <div class="modal" id="tracker-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3 id="tracker-title">Episode Tracker</h3>
+                    <p id="tracker-subtitle" style="font-size: 0.8rem; color: var(--text-dim);"></p>
+                </div>
+                <button class="btn-icon" id="close-tracker">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div id="episode-checklist">
+                <!-- Checklist items will be generated here -->
+            </div>
+            <p style="margin-top: 1.5rem; font-size: 0.75rem; color: var(--text-dim); text-align: center;">
+                Click on an episode number to mark it as the current episode.
+            </p>
+        </div>
+    </div>
+
+    <!-- Firebase Config - UPDATED -->
+    <script>
+        window.firebaseConfig = {
+            apiKey: "AIzaSyD-QHhzpd2N-ljevDydU18L2VtPzjQOGJQ",
+            authDomain: "anime-f46a8.firebaseapp.com",
+            projectId: "anime-f46a8",
+            storageBucket: "anime-f46a8.firebasestorage.app",
+            messagingSenderId: "260169518986",
+            appId: "1:260169518986:web:06aa01f01f8a2904094273"
+        };
+    </script>
+
+    <!-- Rating Picker Modal -->
+    <div class="modal" id="rating-modal">
+        <div class="modal-content" style="max-width: 350px; text-align: center;">
+            <h3 id="rating-modal-title" style="margin-bottom: 1rem;">Rate Episode</h3>
+            <div class="rating-input" id="modal-star-group"
+                style="justify-content: center; gap: 0.5rem; margin-bottom: 2rem;">
+                <i data-lucide="star" data-value="1"></i>
+                <i data-lucide="star" data-value="2"></i>
+                <i data-lucide="star" data-value="3"></i>
+                <i data-lucide="star" data-value="4"></i>
+                <i data-lucide="star" data-value="5"></i>
+                <i data-lucide="star" data-value="6"></i>
+                <i data-lucide="star" data-value="7"></i>
+                <i data-lucide="star" data-value="8"></i>
+                <i data-lucide="star" data-value="9"></i>
+                <i data-lucide="star" data-value="10"></i>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn-secondary" id="cancel-rating" style="flex: 1;">Skip</button>
+                <button class="btn-primary" id="save-rating" style="flex: 1;">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+    <script>
+        // Initialize icons
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
